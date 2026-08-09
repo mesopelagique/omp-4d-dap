@@ -1,0 +1,14 @@
+{
+  "adapters": {
+    "4d": {
+      "command": "node",
+      "args": ["4d-dap-bridge.js", "${port}"],
+      "connectMode": "tcp",
+      "languages": ["4d"],
+      "fileTypes": [".4dm"],
+      "rootMarkers": [".4DProject", "Project"],
+      "launchDefaults": { "request": "launch" },
+      "attachDefaults": { "request": "attach" }
+    }
+  }
+}
