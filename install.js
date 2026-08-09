@@ -60,6 +60,6 @@ console.log("  bridge : " + bridgeDest);
 console.log("  runtime: " + process.execPath);
 console.log("");
 console.log("Next:");
-console.log("  1. Start 4D with DAP enabled:");
-console.log("       /Applications/4D.app/Contents/MacOS/4D --project <MyApp.4DProject> --dap --headless");
+console.log("  1. Start 4D Server with DAP enabled (single-user 4D is not supported):");
+console.log('       "/Applications/4D Server.app/Contents/MacOS/4D Server" --project <MyApp.4DProject> --dap');
 console.log("  2. In omp, use the debug tool:  action=attach  adapter=4d  port=19815");

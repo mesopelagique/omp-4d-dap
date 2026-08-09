@@ -16,7 +16,8 @@
 // ENV
 //   FOURD_DAP_HOST   4D DAP host                              (default 127.0.0.1)
 //   FOURD_DAP_PORT   4D DAP port to forward to                (default 19815)
-//   FOURD_BIN        path to the 4D executable                (default /Applications/4D.app/Contents/MacOS/4D)
+//   FOURD_BIN        path to 4D Server (DAP works with 4D Server, not single-user
+//                    4D)   (default /Applications/4D Server.app/Contents/MacOS/4D Server)
 //   FOURD_PROJECT    if set, auto-launch this .4DProject headless with --dap
 //                    when nothing is already listening on FOURD_DAP_PORT
 //   FOURD_ARGS       extra args appended to 4D on auto-launch (space separated)
@@ -32,7 +33,7 @@ if (!Number.isInteger(localPort) || localPort <= 0) {
 
 const DAP_HOST = process.env.FOURD_DAP_HOST || "127.0.0.1";
 const DAP_PORT = Number(process.env.FOURD_DAP_PORT || 19815);
-const FOURD_BIN = process.env.FOURD_BIN || "/Applications/4D.app/Contents/MacOS/4D";
+const FOURD_BIN = process.env.FOURD_BIN || "/Applications/4D Server.app/Contents/MacOS/4D Server";
 const PROJECT = process.env.FOURD_PROJECT || "";
 const EXTRA = (process.env.FOURD_ARGS || "").trim();
 
@@ -58,7 +59,9 @@ let launched = false;
 function launch4D() {
 	if (launched) return;
 	launched = true;
-	const args = ["--project", PROJECT, "--dap", "--headless"];
+	// Open the project's real data (creating it if absent) so you debug the
+	// actual application; --headless keeps the bridge-spawned server UI-less.
+	const args = ["--project", PROJECT, "--dap", "--create-data", "--headless"];
 	if (EXTRA) args.push(...EXTRA.split(/\s+/));
 	console.error(`4d-dap-bridge: launching ${FOURD_BIN} ${args.join(" ")}`);
 	const child = spawn(FOURD_BIN, args, { stdio: ["ignore", "pipe", "pipe"] });

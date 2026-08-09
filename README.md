@@ -116,7 +116,7 @@ The bridge reads these environment variables (all optional):
 | --- | --- | --- |
 | `FOURD_DAP_HOST` | `127.0.0.1` | Host 4D's DAP server listens on |
 | `FOURD_DAP_PORT` | `19815` | Port 4D's DAP server listens on (its publication port) |
-| `FOURD_BIN` | `/Applications/4D.app/Contents/MacOS/4D` | Path to the 4D executable (set this on Windows/Linux, or for 4D Server) |
+| `FOURD_BIN` | `/Applications/4D Server.app/Contents/MacOS/4D Server` | Path to **4D Server** (single-user 4D is not supported); set for a versioned install (e.g. `/Applications/4D 21.1/...`) or on Windows/Linux |
 | `FOURD_PROJECT` | *(unset)* | If set, auto-launch this `.4DProject` headless with `--dap` when the DAP port is closed |
 | `FOURD_ARGS` | *(unset)* | Extra args appended to 4D on auto-launch |
 | `OMP_AGENT_DIR` | `~/.omp/agent` | (installer only) where `dap.json` + the bridge are written |
