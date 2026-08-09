@@ -40,7 +40,15 @@ readiness on stdout, then connects. The bridge forwards `P` to 4D's DAP port
 
 - **[omp](https://omp.sh)** (oh-my-pi) — its `debug` tool is enabled by default.
 - **Node.js** (or Bun) — runs the ~120-line bridge; no dependencies.
-- **4D** with DAP support (v20 R8 or later).
+- **4D Server** with DAP support (**≥ 20 R8**). This is the tested target — the
+  official 4D debug tooling connects to "a 4D Server" too. It opens your project,
+  prints `DAP_READY`, and listens on `19815`. Single-user `4D.app` exposes `--dap`
+  as well, but on some builds it does not open the port — verify with the
+  [troubleshooting](#troubleshooting) check below.
+
+> Verified end-to-end against **4D Server 21.1** on macOS: `initialize`
+> (capabilities), `attach`, `configurationDone` and `threads` all round-trip
+> through the bridge from an omp-style DAP client.
 
 ## Install
 
@@ -59,11 +67,16 @@ absolute paths **for your machine** — nothing personal is committed to the rep
 
 ## Usage
 
-**1. Start 4D with DAP enabled** (it prints `DAP_READY` and listens on `19815`):
+**1. Start 4D Server with DAP enabled** — it opens the project with its data,
+prints `DAP_READY`, and listens on `19815` (adjust the path to your installed
+version):
 
 ```bash
-/Applications/4D.app/Contents/MacOS/4D --project /path/to/MyApp.4DProject --dap --headless
+"/Applications/4D Server.app/Contents/MacOS/4D Server" --project "/path/to/MyApp.4DProject" --dap
 ```
+
+Wait for the `DAP_READY` line before attaching. (Debugging runs against the real
+data file, so you can step through the actual application.)
 
 **2. Attach from omp** with its `debug` tool:
 
@@ -83,7 +96,8 @@ Set `FOURD_PROJECT` before starting omp; if nothing is listening on the DAP port
 the bridge boots 4D headless on first connect:
 
 ```bash
-export FOURD_PROJECT=/path/to/MyApp.4DProject
+export FOURD_PROJECT="/path/to/MyApp.4DProject"
+export FOURD_BIN="/Applications/4D Server.app/Contents/MacOS/4D Server"   # 4D Server, not single-user 4D
 ```
 
 (First launch of 4D is heavy — pre-starting it, as in step 1, avoids omp's 30 s
@@ -113,6 +127,24 @@ agent/
 install.js           one-command installer, fills machine-correct paths
 docs/                the "make --dap take a port" feature request for 4D
 ```
+
+## Troubleshooting
+
+**`attach` hangs, or the bridge reports "4D DAP not reachable".** First confirm 4D
+actually opened the DAP port:
+
+```bash
+lsof -nP -iTCP:19815 -sTCP:LISTEN
+```
+
+- **No output** → 4D isn't exposing DAP. This is a 4D-side issue, not the bridge.
+  Use a DAP-capable 4D Server build — a real one prints `DAP_READY` on stdout, so
+  `strings "<4D binary>" | grep DAP_READY` should find it.
+- **A `LISTEN` line** → 4D is fine; check `adapter=4d` was passed and the ports
+  match (`FOURD_DAP_PORT` if your project uses a non-default publication port).
+
+**Wrong adapter picked.** omp's `attach` prefers `debugpy` when a `port` is set —
+always pass `adapter=4d` explicitly.
 
 ## Uninstall
 
