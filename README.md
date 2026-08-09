@@ -1,19 +1,22 @@
-# 4D debug adapter for omp
+# 4D adapters for omp — debug (DAP) + language (LSP)
 
-Debug **4D** code from the [**omp** (oh-my-pi)](https://omp.sh) coding agent using its
-built-in [DAP](https://microsoft.github.io/debug-adapter-protocol/) `debug` tool —
-set breakpoints, step, evaluate expressions and inspect variables in a running 4D
-application.
+Bring **4D** to the [**omp** (oh-my-pi)](https://omp.sh) coding agent:
 
-4D already speaks DAP (`4D --dap`), but its DAP server listens on a **fixed TCP
-port** that omp cannot choose, while omp always connects to an adapter on a port
-**it** picks. This project bridges the two, and ships a one-command installer so
-there are no hard-coded paths to edit.
+- **Debug (DAP)** — set breakpoints, step, evaluate, and inspect variables in a
+  running 4D application via omp's `debug` tool.
+- **Language (LSP)** — completion, hover, go-to-definition, signature help,
+  diagnostics and formatting for `.4dm` files, powered by 4D's language server.
 
-> Why a bridge is needed (and a proposal to make it unnecessary): see
-> [`docs/4D-dap-port-argument-request.md`](docs/4D-dap-port-argument-request.md).
+Both 4D endpoints use a **TCP** transport that doesn't line up with how omp
+connects (omp picks the DAP port; omp speaks LSP over stdio). Each side is glued by
+a tiny bridge, and a one-command installer wires both up with no hard-coded paths.
 
-## How it works
+> Why bridges are needed — and proposals to make them unnecessary — are in
+> [`docs/`](docs/): a [`--dap` port argument](docs/4D-dap-port-argument-request.md),
+> [observable `--dap` failures](docs/4D-dap-observable-when-unsupported.md), and
+> [`--lsp=stdio`](docs/4D-lsp-stdio-request.md).
+
+## How DAP works
 
 ```mermaid
 flowchart LR
@@ -38,17 +41,21 @@ readiness on stdout, then connects. The bridge forwards `P` to 4D's DAP port
 
 ## Requirements
 
-- **[omp](https://omp.sh)** (oh-my-pi) — its `debug` tool is enabled by default.
-- **Node.js** (or Bun) — runs the ~120-line bridge; no dependencies.
-- **4D Server** with DAP support (**≥ 20 R8**). This is the tested target — the
-  official 4D debug tooling connects to "a 4D Server" too. It opens your project,
-  prints `DAP_READY`, and listens on `19815`. Single-user `4D.app` exposes `--dap`
-  as well, but on some builds it does not open the port — verify with the
-  [troubleshooting](#troubleshooting) check below.
+- **[omp](https://omp.sh)** (oh-my-pi) — the `debug` (DAP) and language (LSP) tools
+  are on by default.
+- **Node.js** (or Bun) — runs the two small bridges; no dependencies.
+- **For LSP:** `tool4d` — auto-discovered from the
+  [4D-Analyzer](https://github.com/4d/4D-Analyzer-VSCode) VS Code extension, or set
+  `TOOL4D_BIN`. Free, no license.
+- **For DAP:** **4D Server** with DAP support (**≥ 20 R8**). This is the tested
+  target — the official 4D debug tooling connects to "a 4D Server" too. It opens
+  your project, prints `DAP_READY`, and listens on `19815`. Single-user `4D.app`
+  exposes `--dap` as well, but on some builds it does not open the port — verify
+  with the [troubleshooting](#troubleshooting) check below.
 
-> Verified end-to-end against **4D Server 21.1** on macOS: `initialize`
-> (capabilities), `attach`, `configurationDone` and `threads` all round-trip
-> through the bridge from an omp-style DAP client.
+> Verified end-to-end on macOS: **DAP** against 4D Server 21.1
+> (`initialize`/`attach`/`configurationDone`/`threads`) and **LSP** against
+> tool4d 21 R4 (11 providers) — both through the bridges from an omp-style client.
 
 ## Install
 
@@ -58,14 +65,36 @@ cd omp-4d-dap
 node install.js
 ```
 
-That copies the bridge and writes `~/.omp/agent/dap.json` with the correct
-absolute paths **for your machine** — nothing personal is committed to the repo.
+That copies both bridges and writes `~/.omp/agent/dap.json` and
+`~/.omp/agent/lsp.json` with the correct absolute paths **for your machine** —
+nothing personal is committed to the repo.
 
 - Install elsewhere: `node install.js --dir /path/to/.omp` (e.g. a project-local
-  `.omp/` folder, so the adapter ships with one project).
-- Install for another DAP-aware agent: `OMP_AGENT_DIR=~/.claude node install.js`.
+  `.omp/` folder, so the adapters ship with one project).
+- Install for another agent: `OMP_AGENT_DIR=~/.claude node install.js`.
 
-## Usage
+## Language server (LSP)
+
+LSP is the low-friction half — it uses **tool4d** (the free, license-less 4D
+command-line tool the [4D-Analyzer](https://github.com/4d/4D-Analyzer-VSCode)
+extension already downloads), so there's nothing to license or keep running.
+
+Once installed, omp auto-detects the `4d` language server for `.4dm` files in any
+project with a `.4DProject` (or `Project/` folder) — **no manual start needed**.
+You get completion, hover, go-to-definition, signature help, diagnostics and
+formatting.
+
+- tool4d is **auto-discovered** from the 4D-Analyzer extension's install (newest
+  version). If you don't use that extension, point `TOOL4D_BIN` at a `tool4d`
+  executable.
+- 4D's `--lsp=<port>` is a *reverse* connection (tool4d dials back to a port omp's
+  bridge opens), so `4d-lsp-bridge.js` relays omp's stdio to that socket. tool4d
+  loads the project from the LSP workspace omp sends — no `--project` needed.
+
+> Verified end-to-end against **tool4d 21 R4**: `initialize` returns the full 4D
+> language surface (11 providers) through the bridge.
+
+## Debugging (DAP)
 
 **1. Start 4D Server with DAP enabled** — it opens the project with its data,
 prints `DAP_READY`, and listens on `19815` (adjust the path to your installed
@@ -110,7 +139,9 @@ per-request timeout.)
 
 ## Configuration
 
-The bridge reads these environment variables (all optional):
+The bridges read these environment variables (all optional).
+
+**DAP bridge** (`4d-dap-bridge.js`):
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -119,18 +150,28 @@ The bridge reads these environment variables (all optional):
 | `FOURD_BIN` | `/Applications/4D Server.app/Contents/MacOS/4D Server` | Path to **4D Server** (single-user 4D is not supported); set for a versioned install (e.g. `/Applications/4D 21.1/...`) or on Windows/Linux |
 | `FOURD_PROJECT` | *(unset)* | If set, auto-launch this `.4DProject` headless with `--dap` when the DAP port is closed |
 | `FOURD_ARGS` | *(unset)* | Extra args appended to 4D on auto-launch |
-| `OMP_AGENT_DIR` | `~/.omp/agent` | (installer only) where `dap.json` + the bridge are written |
 
-If your project overrides the publication port, set `FOURD_DAP_PORT` to match.
+**LSP bridge** (`4d-lsp-bridge.js`):
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `TOOL4D_BIN` | *(auto-discovered)* | Path to a `tool4d` executable; overrides discovery from the 4D-Analyzer extension |
+| `TOOL4D_ARGS` | *(unset)* | Extra args appended to tool4d |
+
+`OMP_AGENT_DIR` (default `~/.omp/agent`) tells the **installer** where to write
+`dap.json`, `lsp.json`, and the two bridges. If your project overrides the DAP
+publication port, set `FOURD_DAP_PORT` to match.
 
 ## Repository layout
 
 ```
 agent/
-  dap.json           adapter definition (installed to ~/.omp/agent/)
-  4d-dap-bridge.js   the TCP bridge (Node/Bun, no dependencies)
+  dap.json           DAP adapter definition   (installed to ~/.omp/agent/)
+  4d-dap-bridge.js   DAP TCP bridge           (Node/Bun, no dependencies)
+  lsp.json           LSP server definition    (installed to ~/.omp/agent/)
+  4d-lsp-bridge.js   LSP stdio<->reverse-TCP bridge to tool4d
 install.js           one-command installer, fills machine-correct paths
-docs/                feature requests for 4D (--dap port argument; observable failures)
+docs/                feature requests for 4D (--dap port arg; observable --dap; --lsp=stdio)
 ```
 
 ## Troubleshooting
@@ -151,10 +192,15 @@ lsof -nP -iTCP:19815 -sTCP:LISTEN
 **Wrong adapter picked.** omp's `attach` prefers `debugpy` when a `port` is set —
 always pass `adapter=4d` explicitly.
 
+**LSP does nothing / "tool4d not found".** The bridge auto-discovers tool4d from
+the 4D-Analyzer VS Code extension; if you don't have it, set `TOOL4D_BIN` to a
+`tool4d` executable. LSP only activates in a project with a `.4DProject` (or
+`Project/` folder) — omp matches those root markers before starting the server.
+
 ## Uninstall
 
 ```bash
-rm ~/.omp/agent/dap.json ~/.omp/agent/4d-dap-bridge.js
+rm ~/.omp/agent/{dap.json,4d-dap-bridge.js,lsp.json,4d-lsp-bridge.js}
 ```
 
 ## License

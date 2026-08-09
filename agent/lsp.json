@@ -1,0 +1,11 @@
+{
+  "servers": {
+    "4d": {
+      "command": "node",
+      "args": ["4d-lsp-bridge.js"],
+      "fileTypes": [".4dm", ".4qs"],
+      "languageId": "4d",
+      "rootMarkers": [".4DProject", "Project"]
+    }
+  }
+}
