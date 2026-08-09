@@ -76,7 +76,12 @@ version):
 ```
 
 Wait for the `DAP_READY` line before attaching. (Debugging runs against the real
-data file, so you can step through the actual application.)
+data file, so you can step through the actual application.) If the project has no
+data file yet, add `--create-data` the first time so 4D creates one:
+
+```bash
+"/Applications/4D Server.app/Contents/MacOS/4D Server" --project "/path/to/MyApp.4DProject" --dap --create-data
+```
 
 **2. Attach from omp** with its `debug` tool:
 
@@ -125,7 +130,7 @@ agent/
   dap.json           adapter definition (installed to ~/.omp/agent/)
   4d-dap-bridge.js   the TCP bridge (Node/Bun, no dependencies)
 install.js           one-command installer, fills machine-correct paths
-docs/                the "make --dap take a port" feature request for 4D
+docs/                feature requests for 4D (--dap port argument; observable failures)
 ```
 
 ## Troubleshooting
