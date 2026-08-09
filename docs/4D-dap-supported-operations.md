@@ -32,6 +32,22 @@ Which Debug Adapter Protocol operations actually work when driving **4D Server**
 ¹ `continue` between two breakpoints is reliable.
 ² `stack_trace` is the stopped/running litmus: responds ⇒ stopped, hangs ⇒ running/finished.
 
+## Screenshots
+
+`threads` responds reliably even mid-run — the stopped/running probe of choice:
+
+![threads works](dap-threads-working.png)
+
+`continue` past the last breakpoint runs off the end; with no `terminated` event
+the client reports a timeout — this *is* normal completion, not a failure:
+
+![continue times out](dap-continue-timeout.png)
+
+`scopes` is unsupported and simply times out — read state with `evaluate`(`watch`)
+instead:
+
+![scopes times out](dap-scopes-timeout.png)
+
 ## `evaluate` — the primary inspection tool
 
 Because `scopes`/`variables` don't work, **all state inspection goes through
