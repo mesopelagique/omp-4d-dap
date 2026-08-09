@@ -56,15 +56,15 @@ that exists only because stdio isn't offered.
 ```mermaid
 sequenceDiagram
     autonumber
-    participant C as LSP client (agent)
-    participant B as stdio↔TCP bridge
-    participant T as tool4d --lsp=P
-    Note over C,B: today — a bridge is required
-    C->>B: spawn bridge; speak LSP over its stdio
+    participant C as LSP client
+    participant B as bridge
+    participant T as tool4d
+    Note over C,B: today - a bridge is required
+    C->>B: spawn bridge, speak LSP over stdio
     B->>B: open loopback listener on port P
-    B->>T: spawn tool4d --lsp=P
-    T-->>B: dial back to :P (reverse connect)
-    C->>B: LSP request (stdio)
+    B->>T: spawn tool4d with port P
+    T-->>B: dial back to port P, reverse connect
+    C->>B: LSP request over stdio
     B->>T: relay over socket
     T-->>B: LSP response
     B-->>C: relay to stdout
@@ -73,11 +73,11 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     autonumber
-    participant C as LSP client (agent)
-    participant T as tool4d --lsp=stdio
-    Note over C,T: proposed — direct, no bridge
+    participant C as LSP client
+    participant T as tool4d
+    Note over C,T: proposed - direct, no bridge
     C->>T: spawn tool4d --lsp=stdio
-    C->>T: LSP request over stdin (Content-Length framed)
+    C->>T: LSP request over stdin
     T-->>C: LSP response over stdout
 ```
 
