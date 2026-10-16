@@ -135,6 +135,45 @@ formatting.
 > Verified end-to-end against **tool4d 21 R4**: `initialize` returns the full 4D
 > language surface (11 providers) through the bridge.
 
+### Windows, Linux, and macOS
+
+The LSP bridge and `node install.js --copilot` work on all three platforms.
+Discovery follows 4D-Analyzer's executable layout:
+
+| Platform | Default tool4d location |
+| --- | --- |
+| macOS | `~/Library/Application Support/Code/User/globalStorage/4d.4d-analyzer/tool4d/<version>/<build>/tool4d.app/Contents/MacOS/tool4d` |
+| Windows | `%APPDATA%\Code\User\globalStorage\4d.4d-analyzer\tool4d\<version>\<build>\tool4d\tool4d.exe` |
+| Linux | `/opt/tool4d/tool4d` (Analyzer's system-installed package) |
+
+macOS and Windows also search `Code - Insiders` and Analyzer's additional nested
+`tool4d` cache layout, choosing the executable with the newest modification time.
+On Windows, unset `APPDATA` falls back to `~/AppData/Roaming`. Custom Analyzer
+download locations, portable VS Code installs, and other editors require an
+explicit `TOOL4D_BIN`.
+
+For example, in PowerShell:
+
+```powershell
+$env:TOOL4D_BIN = 'C:\Tools\tool4d\tool4d.exe'
+node install.js --copilot
+copilot
+```
+
+On Linux or macOS:
+
+```bash
+export TOOL4D_BIN="/path/to/tool4d"
+node install.js --copilot
+copilot
+```
+
+Set the variable before starting the agent, or persist it in the `4d` server's
+`env` object in `lsp-config.json`. Pass the executable path itself, without
+embedded shell quotes; paths containing spaces are supported. Discovery does not
+download tool4d or install system packages. A compatible tool4d build and its
+platform dependencies must already be installed.
+
 ## Debugging (DAP)
 
 **1. Start 4D Server with DAP enabled** — it opens the project with its data,
