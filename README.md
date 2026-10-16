@@ -73,6 +73,47 @@ nothing personal is committed to the repo.
   `.omp/` folder, so the adapters ship with one project).
 - Install for another agent: `OMP_AGENT_DIR=~/.claude node install.js`.
 
+### GitHub Copilot CLI
+
+Install the LSP bridge for Copilot CLI instead of omp:
+
+```bash
+node install.js --copilot
+```
+
+This copies `4d-lsp-bridge.js` into `~/.copilot/` and merges the `4d` server into
+`~/.copilot/lsp-config.json`, preserving other servers. It does not install DAP.
+`COPILOT_HOME` overrides that directory, or use
+`node install.js --copilot --dir /path/to/copilot-config`.
+
+Copilot's [documented LSP configuration](https://github.com/github/copilot-cli#-configuring-lsp-servers)
+launches a command over **stdio**, with no HTTP/TCP endpoint option. 4D's
+`--lsp=<port>` uses **reverse TCP, not HTTP**, so the existing bridge is needed:
+Copilot stdio -> bridge -> tool4d reverse-TCP connection.
+
+The installer writes absolute paths appropriate for your machine:
+
+```json
+{
+  "lspServers": {
+    "4d": {
+      "command": "/absolute/path/to/node",
+      "args": ["/absolute/path/to/.copilot/4d-lsp-bridge.js"],
+      "fileExtensions": {
+        ".4dm": "4d",
+        ".4qs": "4qs"
+      }
+    }
+  }
+}
+```
+
+Install tool4d through 4D-Analyzer, or set `TOOL4D_BIN` to its executable before
+starting Copilot. Restart Copilot CLI after installing, then use `/lsp` to inspect
+the server status. `copilot lsp list --json` checks configuration discovery without
+starting the server. Start Copilot in your 4D project directory so its LSP
+workspace points at the project.
+
 ## Language server (LSP)
 
 LSP is the low-friction half — it uses **tool4d** (the free, license-less 4D

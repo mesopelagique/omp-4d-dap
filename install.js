@@ -7,6 +7,7 @@
 // Usage:
 //   node install.js                          install to ~/.omp/agent
 //   node install.js --dir <path>             install into a custom dir
+//   node install.js --copilot                install LSP for GitHub Copilot CLI
 //   OMP_AGENT_DIR=~/.claude node install.js  install for another agent
 //
 // The runtime you launch this with (node or bun) becomes the command for both
@@ -23,6 +24,9 @@ function expandHome(p) {
 function targetDir() {
 	const i = process.argv.indexOf("--dir");
 	if (i !== -1 && process.argv[i + 1]) return process.argv[i + 1];
+	if (process.argv.includes("--copilot")) {
+		return process.env.COPILOT_HOME || path.join(os.homedir(), ".copilot");
+	}
 	if (process.env.OMP_AGENT_DIR) return process.env.OMP_AGENT_DIR;
 	return path.join(os.homedir(), ".omp", "agent");
 }
@@ -30,7 +34,10 @@ function targetDir() {
 const srcDir = path.join(__dirname, "agent");
 const dest = path.resolve(expandHome(targetDir()));
 
-const required = ["4d-dap-bridge.js", "dap.json", "4d-lsp-bridge.js", "lsp.json"];
+const copilot = process.argv.includes("--copilot");
+const required = copilot
+	? ["4d-lsp-bridge.js"]
+	: ["4d-dap-bridge.js", "dap.json", "4d-lsp-bridge.js", "lsp.json"];
 for (const f of required) {
 	if (!fs.existsSync(path.join(srcDir, f))) {
 		console.error(`error: run this from the repo root (missing agent/${f})`);
@@ -49,6 +56,37 @@ function installBridge(name) {
 		/* non-fatal on filesystems without exec bits */
 	}
 	return to;
+}
+
+if (copilot) {
+	const configPath = path.join(dest, "lsp-config.json");
+	const config = fs.existsSync(configPath)
+		? JSON.parse(fs.readFileSync(configPath, "utf8"))
+		: {};
+	if (!config || typeof config !== "object" || Array.isArray(config) ||
+		(config.lspServers !== undefined &&
+			(!config.lspServers || typeof config.lspServers !== "object" ||
+				Array.isArray(config.lspServers)))) {
+		throw new Error(`Invalid Copilot LSP configuration: ${configPath}`);
+	}
+	const lspBridge = installBridge("4d-lsp-bridge.js");
+	config.lspServers = {
+		...config.lspServers,
+		"4d": {
+			...config.lspServers?.["4d"],
+			command: process.execPath,
+			args: [lspBridge],
+			fileExtensions: { ".4dm": "4d", ".4qs": "4qs" },
+		},
+	};
+	fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+	console.log("Installed the 4D language server for GitHub Copilot CLI");
+	console.log("  LSP config : " + configPath);
+	console.log("  bridge     : " + lspBridge);
+	console.log("  runtime    : " + process.execPath);
+	console.log("Requires tool4d from 4D-Analyzer, or set TOOL4D_BIN before starting Copilot.");
+	console.log("Restart Copilot CLI, then use /lsp to check the server status.");
+	return;
 }
 
 // --- DAP (debug) ---
